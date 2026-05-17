@@ -1,53 +1,66 @@
 export class Dashboard {
-    constructor() {
-        this.earEl = document.getElementById('ear-text');
-        this.blinkEl = document.getElementById('blink-text');
-        this.microsleepEl = document.getElementById('microsleep-text');
-        this.scoreEl = document.getElementById('score-text');
-        this.scoreBarEl = document.getElementById('score-bar');
-    }
+  constructor() {
+    this.earEl = document.getElementById('ear-text');
+    this.eyeStateEl = document.getElementById('eye-state-text');
+    this.blinkEl = document.getElementById('blink-text');
+    this.closureEl = document.getElementById('closure-text');
+    this.perclosEl = document.getElementById('perclos-text');
+    this.microsleepEl = document.getElementById('microsleep-text');
+    this.gazeEl = document.getElementById('gaze-text');
+    this.headEl = document.getElementById('head-text');
+    this.confidenceEl = document.getElementById('confidence-text');
+    this.calibrationEl = document.getElementById('calibration-text');
+    this.scoreEl = document.getElementById('score-text');
+    this.scoreBarEl = document.getElementById('score-bar');
+    this.alertCopyEl = document.getElementById('alert-copy');
+  }
 
-    updateEAR(value) {
-        this.earEl.textContent = value.toFixed(2);
-    }
+  updateEyeMetrics(metrics) {
+    this.earEl.textContent = metrics.ear.toFixed(2);
+    this.eyeStateEl.textContent = metrics.isEyesClosed ? 'Eyes closed' : 'Eyes open';
+    this.blinkEl.textContent = metrics.blinkRate;
+    this.closureEl.textContent = `Longest closure ${Math.round(metrics.longestClosureMs)} ms`;
+    this.perclosEl.textContent = `${Math.round(metrics.perclos30s * 100)}%`;
+    this.microsleepEl.textContent = `Microsleeps ${metrics.microsleeps30s}`;
+    this.updateConfidence(metrics.confidence);
+  }
 
-    updateBlinkRate(bpm) {
-        this.blinkEl.textContent = bpm;
-    }
+  updateGazeDrift(drift) {
+    this.gazeEl.textContent = drift.toFixed(2);
+  }
 
-    updateMicrosleep(isMicrosleep) {
-        if (isMicrosleep) {
-            this.microsleepEl.textContent = 'MICROSLEEP';
-            this.microsleepEl.className = 'text-lg font-bold mt-1 text-red-500';
-        } else {
-            this.microsleepEl.textContent = 'AWAKE';
-            this.microsleepEl.className = 'text-lg font-bold mt-1 text-green-400';
-        }
-    }
+  updateHeadPose(drift) {
+    this.headEl.textContent = `${Math.round(drift)}°`;
+  }
 
-    updateGazeDrift(drift) {
-        document.getElementById('gaze-text').textContent = drift;
-    }
+  updateConfidence(confidence) {
+    this.confidenceEl.textContent = `${Math.round(confidence * 100)}%`;
+  }
 
-    updateScore(score) {
-        // Score from 0 to 100
-        this.scoreEl.textContent = `${Math.round(score)}%`;
-        this.scoreBarEl.style.width = `${score}%`;
-        
-        // Update bar color based on tier
-        if (score < 60) {
-            this.scoreBarEl.className = 'absolute top-0 left-0 h-full bg-green-500 transition-all duration-300';
-        } else if (score < 80) {
-            this.scoreBarEl.className = 'absolute top-0 left-0 h-full bg-yellow-500 transition-all duration-300';
-        } else {
-            this.scoreBarEl.className = 'absolute top-0 left-0 h-full bg-red-600 transition-all duration-300';
-        }
-    }
+  updateCalibration(message) {
+    this.calibrationEl.textContent = message;
+  }
 
-    reset() {
-        this.updateEAR(0);
-        this.updateBlinkRate(0);
-        this.updateMicrosleep(false);
-        this.updateScore(0);
-    }
+  updateScore(score, level = 'normal', copy = "You're alert and focused. Keep it up.") {
+    this.scoreEl.textContent = `${Math.round(score)}%`;
+    this.scoreBarEl.style.width = `${score}%`;
+    this.scoreBarEl.className = `score-bar ${level}`;
+    this.alertCopyEl.textContent = copy;
+  }
+
+  reset() {
+    this.updateEyeMetrics({
+      ear: 0,
+      blinkRate: 0,
+      perclos30s: 0,
+      microsleeps30s: 0,
+      longestClosureMs: 0,
+      isEyesClosed: false,
+      confidence: 0,
+    });
+    this.updateGazeDrift(0);
+    this.updateHeadPose(0);
+    this.updateCalibration('Waiting for camera');
+    this.updateScore(0);
+  }
 }

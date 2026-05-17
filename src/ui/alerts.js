@@ -1,61 +1,60 @@
 export class AlertSystem {
-    constructor() {
-        this.overlay = document.getElementById('alert-overlay');
-        this.isAlerting = false;
-        
-        // Simple beep creation using Web Audio API
-        const AudioContext = window.AudioContext || window.webkitAudioContext;
-        this.audioCtx = new AudioContext();
+  constructor() {
+    this.overlay = document.getElementById('alert-overlay');
+    this.titleEl = document.getElementById('alert-title');
+    this.messageEl = document.getElementById('alert-message');
+    this.lastBeepAt = 0;
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    this.audioCtx = AudioContext ? new AudioContext() : null;
+  }
+
+  update(level, eye) {
+    if (level.label === 'red' || eye.isMicrosleep) {
+      this.show('Critical fatigue risk', level.copy);
+      this.playBeep();
+      return;
     }
 
-    triggerMicrosleep() {
-        this.triggerCriticalAlert('MICROSLEEP DETECTED!');
+    if (level.label === 'orange') {
+      this.show('Strong fatigue warning', level.copy);
+      return;
     }
 
-    triggerCriticalAlert(message = 'WAKE UP!') {
-        if (this.isAlerting) return;
-        this.isAlerting = true;
-        
-        this.overlay.innerHTML = `
-            <div class="text-4xl font-bold text-white px-8 py-4 rounded bg-red-600 shadow-2xl animate-pulse">
-                ${message}
-            </div>
-        `;
-        
-        this.overlay.classList.remove('opacity-0');
-        this.overlay.classList.add('opacity-100');
-        
-        this.playBeep();
-        
-        // Auto-dismiss after 2 seconds
-        setTimeout(() => {
-            this.clearAlert();
-        }, 2000);
+    this.clear();
+  }
+
+  show(title, message) {
+    this.titleEl.textContent = title;
+    this.messageEl.textContent = message;
+    this.overlay.classList.remove('hidden');
+  }
+
+  clear() {
+    this.overlay.classList.add('hidden');
+  }
+
+  playBeep() {
+    if (!this.audioCtx || performance.now() - this.lastBeepAt < 1200) {
+      return;
     }
 
-    clearAlert() {
-        this.overlay.classList.remove('opacity-100');
-        this.overlay.classList.add('opacity-0');
-        this.isAlerting = false;
+    this.lastBeepAt = performance.now();
+    if (this.audioCtx.state === 'suspended') {
+      this.audioCtx.resume();
     }
 
-    playBeep() {
-        if (this.audioCtx.state === 'suspended') {
-            this.audioCtx.resume();
-        }
-        const oscillator = this.audioCtx.createOscillator();
-        const gainNode = this.audioCtx.createGain();
-        
-        oscillator.type = 'square';
-        oscillator.frequency.setValueAtTime(880, this.audioCtx.currentTime); // 880Hz
-        
-        gainNode.gain.setValueAtTime(0.1, this.audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.5);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(this.audioCtx.destination);
-        
-        oscillator.start();
-        oscillator.stop(this.audioCtx.currentTime + 0.5);
-    }
+    const oscillator = this.audioCtx.createOscillator();
+    const gainNode = this.audioCtx.createGain();
+
+    oscillator.type = 'square';
+    oscillator.frequency.setValueAtTime(880, this.audioCtx.currentTime);
+    gainNode.gain.setValueAtTime(0.11, this.audioCtx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.001, this.audioCtx.currentTime + 0.45);
+
+    oscillator.connect(gainNode);
+    gainNode.connect(this.audioCtx.destination);
+    oscillator.start();
+    oscillator.stop(this.audioCtx.currentTime + 0.45);
+  }
 }

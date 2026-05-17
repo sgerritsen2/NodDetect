@@ -1,71 +1,84 @@
-import { FaceMesh } from '@mediapipe/face_mesh';
-import { FACEMESH_TESSELATION, FACEMESH_RIGHT_EYE, FACEMESH_LEFT_EYE, FACEMESH_RIGHT_IRIS, FACEMESH_LEFT_IRIS } from '@mediapipe/face_mesh';
-import { drawConnectors } from '@mediapipe/drawing_utils';
-
 export class FaceMeshManager {
-    constructor(earCalc, gazeCalc, classifier) {
-        this.earCalc = earCalc;
-        this.gazeCalc = gazeCalc;
-        this.classifier = classifier;
-        this.faceMesh = null;
+  constructor(earCalc, gazeCalc, headPoseCalc, classifier, dashboard) {
+    this.earCalc = earCalc;
+    this.gazeCalc = gazeCalc;
+    this.headPoseCalc = headPoseCalc;
+    this.classifier = classifier;
+    this.dashboard = dashboard;
+    this.faceMesh = null;
+  }
+
+  async initialize() {
+    this.faceMesh = new window.FaceMesh({
+      locateFile: (file) => `/vendor/mediapipe/face_mesh/${file}`,
+    });
+
+    this.faceMesh.setOptions({
+      maxNumFaces: 1,
+      refineLandmarks: true,
+      minDetectionConfidence: 0.58,
+      minTrackingConfidence: 0.58,
+    });
+
+    this.faceMesh.onResults(this.onResults.bind(this));
+  }
+
+  async sendFrame(videoElement) {
+    if (this.faceMesh) {
+      await this.faceMesh.send({ image: videoElement });
+    }
+  }
+
+  reset() {
+    this.earCalc.reset();
+    this.gazeCalc.reset();
+    this.headPoseCalc.reset();
+    this.classifier.reset();
+    this.clearCanvas();
+  }
+
+  startCalibration() {
+    this.earCalc.startCalibration();
+    this.gazeCalc.startCalibration();
+    this.headPoseCalc.startCalibration();
+  }
+
+  onResults(results) {
+    const landmarks = results.multiFaceLandmarks?.[0];
+
+    if (!landmarks) {
+      this.dashboard.updateCalibration('No face detected');
+      this.clearCanvas();
+      return;
     }
 
-    async initialize() {
-        this.faceMesh = new FaceMesh({
-            locateFile: (file) => {
-                return `https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/${file}`;
-            }
-        });
+    this.drawMesh(landmarks);
 
-        this.faceMesh.setOptions({
-            maxNumFaces: 1,
-            refineLandmarks: true, // Needed for iris tracking
-            minDetectionConfidence: 0.5,
-            minTrackingConfidence: 0.5
-        });
+    const now = performance.now();
+    const eye = this.earCalc.processLandmarks(landmarks, now);
+    const gaze = this.gazeCalc.calculateGazeDrift(landmarks, now);
+    const head = this.headPoseCalc.calculateHeadPose(landmarks, now);
+    const confidence = (eye.confidence + gaze.confidence + head.confidence) / 3;
+    this.dashboard.updateConfidence(confidence);
 
-        this.faceMesh.onResults(this.onResults.bind(this));
-    }
+    this.classifier.predict({ eye, gaze, head });
+  }
 
-    async sendFrame(videoElement) {
-        if (this.faceMesh) {
-            await this.faceMesh.send({image: videoElement});
-        }
-    }
+  drawMesh(landmarks) {
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    onResults(results) {
-        if (results.multiFaceLandmarks && results.multiFaceLandmarks.length > 0) {
-            const landmarks = results.multiFaceLandmarks[0];
-            
-            // Render basic mesh for debug (optional)
-            this.drawMesh(landmarks, results.image);
-            
-            // Process signals
-            const ear = this.earCalc.processLandmarks(landmarks);
-            const gaze = this.gazeCalc.calculateGazeDrift(landmarks);
-            
-            // Run Classifier Fusion
-            this.classifier.predict(
-                ear, 
-                this.earCalc.getBPM(), 
-                gaze, 
-                this.earCalc.isEyesClosed && (Date.now() - this.earCalc.eyeClosureStartTime > 500)
-            );
-        } else {
-            // No face detected
-            this.earCalc.reset();
-        }
-    }
+    window.drawConnectors(ctx, landmarks, window.FACEMESH_FACE_OVAL, { color: 'rgba(255,255,255,0.34)', lineWidth: 1 });
+    window.drawConnectors(ctx, landmarks, window.FACEMESH_LEFT_EYE, { color: '#35d889', lineWidth: 1.4 });
+    window.drawConnectors(ctx, landmarks, window.FACEMESH_RIGHT_EYE, { color: '#35d889', lineWidth: 1.4 });
+    window.drawConnectors(ctx, landmarks, window.FACEMESH_LEFT_IRIS, { color: '#f0b03a', lineWidth: 1.4 });
+    window.drawConnectors(ctx, landmarks, window.FACEMESH_RIGHT_IRIS, { color: '#f0b03a', lineWidth: 1.4 });
+  }
 
-    drawMesh(landmarks, image) {
-        const canvas = document.getElementById('overlay');
-        const ctx = canvas.getContext('2d');
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        drawConnectors(ctx, landmarks, FACEMESH_RIGHT_EYE, {color: '#FF3030'});
-        drawConnectors(ctx, landmarks, FACEMESH_LEFT_EYE, {color: '#30FF30'});
-        drawConnectors(ctx, landmarks, FACEMESH_RIGHT_IRIS, {color: '#FF3030'});
-        drawConnectors(ctx, landmarks, FACEMESH_LEFT_IRIS, {color: '#30FF30'});
-    }
+  clearCanvas() {
+    const canvas = document.getElementById('overlay');
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
 }

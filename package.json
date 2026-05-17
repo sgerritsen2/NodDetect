@@ -1,10 +1,12 @@
 {
   "name": "noddetect",
   "version": "1.0.0",
-  "description": "��#\u0000 \u0000N\u0000o\u0000d\u0000D\u0000e\u0000t\u0000e\u0000c\u0000t\u0000\r\u0000 \u0000",
+  "description": "Privacy-first in-browser cognitive fatigue monitor.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "postinstall": "node scripts/copy-mediapipe-assets.mjs",
+    "prepare:assets": "node scripts/copy-mediapipe-assets.mjs",
+    "test": "npm run build",
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview"
