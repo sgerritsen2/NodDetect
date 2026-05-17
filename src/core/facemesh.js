@@ -6,6 +6,7 @@ export class FaceMeshManager {
     this.classifier = classifier;
     this.dashboard = dashboard;
     this.faceMesh = null;
+    this.lastFaceTime = performance.now();
   }
 
   async initialize() {
@@ -45,16 +46,33 @@ export class FaceMeshManager {
 
   onResults(results) {
     const landmarks = results.multiFaceLandmarks?.[0];
+    const now = performance.now();
 
     if (!landmarks) {
-      this.dashboard.updateCalibration('No face detected');
+      if (now - this.lastFaceTime > 2000) {
+        // If we haven't seen a face for a few seconds, alert the user explicitly.
+        // The classifier knows the alert system, so we can trigger a hard reset of predictions
+        // or trigger a specific Face lost state through dashboard/classifier.
+        this.dashboard.updateCalibration('⚠️ FACE LOST - Position Camera');
+        if (this.classifier.alertSystem) {
+          this.classifier.alertSystem.show('Face Lost', 'Re-center your face in the camera.');
+        }
+      } else {
+        this.dashboard.updateCalibration('No face detected');
+      }
       this.clearCanvas();
       return;
     }
 
+    this.lastFaceTime = now;
+    
+    // Clear the face lost alert if recovering
+    if (this.classifier.alertSystem && this.classifier.alertSystem.titleEl.textContent === 'Face Lost') {
+       this.classifier.alertSystem.clear();
+    }
+
     this.drawMesh(landmarks);
 
-    const now = performance.now();
     const eye = this.earCalc.processLandmarks(landmarks, now);
     const gaze = this.gazeCalc.calculateGazeDrift(landmarks, now);
     const head = this.headPoseCalc.calculateHeadPose(landmarks, now);
