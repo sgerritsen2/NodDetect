@@ -41,7 +41,7 @@ export class FatigueClassifier {
   }
 
   async loadModel() {
-    console.info('FocusGuard MVP is using a local heuristic model. ONNX/TFLite can replace this without changing the signal pipeline.');
+    console.info('NodDetect MVP is using a local heuristic model. ONNX/TFLite can replace this without changing the signal pipeline.');
   }
 
   predict({ eye, gaze, head }) {
