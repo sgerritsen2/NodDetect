@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>NodDetect - Privacy-Safe Fatigue Monitor</title>
+    <link rel="stylesheet" href="/src/styles/main.css" />
+  </head>
+  <body class="bg-gray-900 text-white min-h-screen">
+    <div id="app" class="container mx-auto p-4 flex flex-col items-center">
+      <header class="w-full max-w-4xl flex justify-between items-center mb-8">
+        <h1 class="text-3xl font-bold">NodDetect</h1>
+        <div id="status-indicator" class="px-4 py-2 rounded-full font-bold bg-gray-700">Loading...</div>
+      </header>
+
+      <main class="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8">
+        <!-- Camera and Status Section -->
+        <section class="flex flex-col items-center gap-4">
+          <div class="relative w-full aspect-video bg-black rounded-lg overflow-hidden border-2 border-gray-700 shadow-lg">
+            <video id="webcam" class="absolute inset-0 w-full h-full object-cover" autoplay playsinline></video>
+            <canvas id="overlay" class="absolute inset-0 w-full h-full object-cover z-10"></canvas>
+            
+            <!-- Alert Overlay -->
+            <div id="alert-overlay" class="absolute inset-0 z-20 flex items-center justify-center opacity-0 transition-opacity duration-300 pointer-events-none">
+              <div class="text-4xl font-bold text-white px-8 py-4 rounded bg-red-600 shadow-2xl">
+                WAKE UP!
+              </div>
+            </div>
+          </div>
+          
+          <div class="w-full flex justify-between gap-4">
+            <button id="start-btn" class="flex-1 py-3 px-6 bg-blue-600 hover:bg-blue-700 rounded font-semibold transition-colors">Start Monitor</button>
+            <button id="stop-btn" class="flex-1 py-3 px-6 bg-red-600 hover:bg-red-700 rounded font-semibold transition-colors disabled:opacity-50" disabled>Stop</button>
+          </div>
+        </section>
+
+        <!-- Dashboard Section -->
+        <section class="flex flex-col gap-6">
+          <!-- Overall Score -->
+          <div class="bg-gray-800 p-6 rounded-lg shadow-lg">
+            <h2 class="text-xl font-semibold mb-4 text-gray-400">Fatigue Score</h2>
+            <div class="relative w-full h-8 bg-gray-700 rounded-full overflow-hidden">
+              <div id="score-bar" class="absolute top-0 left-0 h-full bg-green-500 transition-all duration-300" style="width: 0%"></div>
+            </div>
+            <div class="text-5xl font-mono mt-4 text-center" id="score-text">0%</div>
+          </div>
+
+          <!-- Signal Breakdowns -->
+          <div class="grid grid-cols-2 gap-4">
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h3 class="text-sm text-gray-400">Eye Aspect Ratio</h3>
+              <div class="text-2xl font-mono mt-1" id="ear-text">0.00</div>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h3 class="text-sm text-gray-400">Blinks / Min</h3>
+              <div class="text-2xl font-mono mt-1" id="blink-text">0</div>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h3 class="text-sm text-gray-400">Gaze Drift</h3>
+              <div class="text-2xl font-mono mt-1" id="gaze-text">0.0</div>
+            </div>
+            <div class="bg-gray-800 p-4 rounded-lg">
+              <h3 class="text-sm text-gray-400">State</h3>
+              <div class="text-lg font-bold mt-1 text-green-400" id="microsleep-text">AWAKE</div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <script type="module" src="/src/main.js"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </body>
+</html>
